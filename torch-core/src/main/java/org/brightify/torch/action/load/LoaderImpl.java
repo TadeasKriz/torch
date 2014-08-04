@@ -39,7 +39,6 @@ import org.brightify.torch.filter.EntityFilter;
 import org.brightify.torch.filter.NumberColumn;
 import org.brightify.torch.util.AsyncRunner;
 import org.brightify.torch.util.Callback;
-import org.brightify.torch.util.LazyArrayList;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -104,12 +103,27 @@ public class LoaderImpl<ENTITY> implements
     @Override
     public List<ENTITY> list() {
         LinkedList<ENTITY> list = new LinkedList<ENTITY>();
+        LoadQuery<ENTITY> query = LoadQuery.Builder.build(this);
 
-        for(ENTITY entity : this) {
-            list.addLast(entity);
+        Cursor cursor = null;
+        try {
+            cursor = query.run(torch);
+            EntityMetadata<ENTITY> metadata = query.getEntityMetadata();
+            while (cursor.moveToNext()) {
+                list.addLast(metadata.createFromCursor(cursor));
+            }
+            return list;
+        } catch(Exception e) {
+            if(e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            } else {
+                throw new RuntimeException("An exception occured while loading the list!", e);
+            }
+        } finally {
+            if(cursor != null) {
+                cursor.close();
+            }
         }
-
-        return list;
     }
 
     @Override
@@ -124,9 +138,7 @@ public class LoaderImpl<ENTITY> implements
 
     @Override
     public Iterator<ENTITY> iterator() {
-        LoadQuery<ENTITY> query = LoadQuery.Builder.build(this);
-
-        return new CursorIterator<ENTITY>(query.getEntityMetadata(), query.run(torch));
+        return list().iterator();
     }
 
     @Override

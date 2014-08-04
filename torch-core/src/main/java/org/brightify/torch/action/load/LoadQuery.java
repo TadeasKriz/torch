@@ -120,8 +120,6 @@ public class LoadQuery<ENTITY> {
                 }
             }
 
-            builder.append(";");
-
             String sql = builder.toString();
             String[] selectionArgs = selectionArgsList.toArray(new String[selectionArgsList.size()]);
 
